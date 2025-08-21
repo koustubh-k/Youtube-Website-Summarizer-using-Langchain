@@ -1,79 +1,67 @@
-import validators, streamlit as st
+import validators
+import streamlit as st
 from langchain.prompts import PromptTemplate
 from langchain_groq import ChatGroq
 from langchain.chains.summarize import load_summarize_chain
 from langchain_community.document_loaders import YoutubeLoader, UnstructuredURLLoader
-from warnings import filterwarnings
 
-# Suppress all warnings for a cleaner Streamlit UI
-filterwarnings("ignore")
-
-# Streamlit App Setup
+# Streamlit APP
 st.set_page_config(page_title="LangChain: Summarize Text From YT or Website", page_icon="🦜")
-st.title("🦉 LangChain: Summarize Text From YT or Website")
-st.markdown("Enter a YouTube video URL or a website URL below to get a concise summary using a large language model.")
+st.title("🦜 LangChain: Summarize Text From YT or Website")
+st.subheader("Summarize URL")
 
-# Sidebar for API key input
+# Sidebar inputs
 with st.sidebar:
-    groq_api_key = st.text_input("Groq API Key", type="password")
+    groq_api_key = st.text_input("Groq API Key", value="", type="password")
 
-# URL Input
-generic_url = st.text_input("Enter YouTube or Web Article URL", label_visibility="visible")
+generic_url = st.text_input("URL", label_visibility="collapsed")
 
-# Prompt Template for Summarization
-refine_template = """
-You are a master summarizer. Your task is to provide a comprehensive and detailed summary of the following content.
-Your summary should be at least 300 words long and capture all the key points, arguments, and conclusions presented.
+# Initialize LLM
+if groq_api_key.strip():
+    llm = ChatGroq(model="Gemma-7b-It", groq_api_key=groq_api_key)
+else:
+    llm = None
 
+# Prompt
+prompt_template = """
+Provide a clear, concise summary of the following content in about 300 words:
 Content:
 {text}
 """
+prompt = PromptTemplate(template=prompt_template, input_variables=["text"])
 
-prompt = PromptTemplate(template=refine_template, input_variables=["text"])
-
-# Check if Summarize button is clicked
-if st.button("Summarize the Content"):
-
+# Button action
+if st.button("Summarize the Content from YT or Website"):
+    # Validate inputs
     if not groq_api_key.strip() or not generic_url.strip():
-        st.error("Please provide both the Groq API key and a URL to get started.")
-    
+        st.error("Please provide both API Key and URL to get started.")
     elif not validators.url(generic_url):
-        st.error("Please enter a valid URL (YouTube or website).")
-    
+        st.error("Please enter a valid URL. It can be a YouTube video or website link.")
     else:
         try:
-            with st.spinner("⏳ Loading content and summarizing..."):
-
-                # Load the document
-                if "youtube.com" in generic_url or "youtu.be" in generic_url:
+            with st.spinner("Fetching and summarizing content..."):
+                # Load documents
+                if "youtube.com" in generic_url:
                     loader = YoutubeLoader.from_youtube_url(generic_url, add_video_info=True)
                 else:
                     loader = UnstructuredURLLoader(
                         urls=[generic_url],
                         ssl_verify=False,
                         headers={
-                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Brave/117.0.0.0"
+                            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5_1) "
+                                          "AppleWebKit/537.36 (KHTML, like Gecko) "
+                                          "Chrome/116.0.0.0 Safari/537.36"
                         }
                     )
-
                 docs = loader.load()
 
-                # Initialize LLM
-                llm = ChatGroq(groq_api_key=groq_api_key, model_name="Gemma2-9b-It")
-
-                # Load summarize chain
-                chain = load_summarize_chain(
-                    llm=llm,
-                    chain_type="stuff",
-                    prompt=prompt,
-                    verbose=True
-                )
-
-                # Get the summary
-                result = chain.invoke({"input_documents": docs})
-
-                st.success("✅ Summary created successfully!")
-                st.markdown(result['output_text'])
+                if not docs:
+                    st.error("No content could be loaded from the given URL.")
+                else:
+                    # Summarization chain
+                    chain = load_summarize_chain(llm, chain_type="stuff", prompt=prompt)
+                    output_summary = chain.run(input_documents=docs)
+                    st.success(output_summary)
 
         except Exception as e:
-            st.exception(f"An error occurred: {e}")
+            st.error(f"Exception: {e}")
