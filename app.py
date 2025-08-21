@@ -48,11 +48,14 @@ if st.button("Summarize the Content from YT or Website"):
                         urls=[generic_url],
                         ssl_verify=False,
                         headers={
-                            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5_1) "
-                                          "AppleWebKit/537.36 (KHTML, like Gecko) "
-                                          "Chrome/116.0.0.0 Safari/537.36"
+                            "User-Agent": (
+                                "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5_1) "
+                                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                                "Chrome/116.0.0.0 Safari/537.36 "
+                                "Brave/116.0.0.0"
+                            )
                         }
-                    )
+                        )
                 docs = loader.load()
 
                 if not docs:
@@ -65,4 +68,5 @@ if st.button("Summarize the Content from YT or Website"):
 
         except Exception as e:
             st.error(f"Exception: {e}")
+
 
