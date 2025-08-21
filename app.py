@@ -18,7 +18,7 @@ generic_url = st.text_input("URL", label_visibility="collapsed")
 
 # Initialize LLM
 if groq_api_key.strip():
-    llm = ChatGroq(model="Gemma-7b-It", groq_api_key=groq_api_key)
+    llm = ChatGroq(model="openai/gpt-oss-120b", groq_api_key=groq_api_key)
 else:
     llm = None
 
@@ -65,3 +65,4 @@ if st.button("Summarize the Content from YT or Website"):
 
         except Exception as e:
             st.error(f"Exception: {e}")
+
